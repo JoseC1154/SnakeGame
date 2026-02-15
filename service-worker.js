@@ -1,7 +1,7 @@
 // FILE: service-worker.js
-/* Snake+ Service Worker (offline-first for app shell) */
+/* Snake+ Service Worker (offline-first app shell) */
 
-const VERSION = "v1.0.1";
+const VERSION = "v1.0.2";
 const CACHE_NAME = `snakeplus-${VERSION}`;
 
 const APP_SHELL = [
@@ -13,10 +13,10 @@ const APP_SHELL = [
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/maskable-192.png",
-  "./icons/maskable-512.png",
+  "./icons/maskable-512.png"
 ];
 
-// Install: cache app shell
+// Install
 self.addEventListener("install", (event) => {
   event.waitUntil(
     (async () => {
@@ -27,7 +27,7 @@ self.addEventListener("install", (event) => {
   );
 });
 
-// Activate: clean old caches
+// Activate
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
@@ -42,23 +42,20 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// Fetch:
-// - Navigation requests: network-first (so updates deploy cleanly), fallback to cache
-// - Static assets: cache-first
+// Fetch
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   const url = new URL(req.url);
 
-  // Only handle same-origin
   if (url.origin !== self.location.origin) return;
 
-  // HTML navigations
   const isNav =
     req.mode === "navigate" ||
     (req.method === "GET" &&
       req.headers.get("accept") &&
       req.headers.get("accept").includes("text/html"));
 
+  // Network-first for HTML
   if (isNav) {
     event.respondWith(
       (async () => {
@@ -76,7 +73,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Everything else: cache-first, then network, then fallback
+  // Cache-first for static
   event.respondWith(
     (async () => {
       const cached = await caches.match(req);
@@ -84,15 +81,13 @@ self.addEventListener("fetch", (event) => {
 
       try {
         const fresh = await fetch(req);
-        // Cache successful GET responses
         if (req.method === "GET" && fresh && fresh.status === 200) {
           const cache = await caches.open(CACHE_NAME);
           cache.put(req, fresh.clone());
         }
         return fresh;
       } catch {
-        // Optional: fallback to root for missing assets
-        return cached || new Response("Offline", { status: 503 });
+        return new Response("Offline", { status: 503 });
       }
     })()
   );
