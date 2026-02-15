@@ -60,6 +60,10 @@
   const SPEEDUP_EVERY = 5; // foods per speed step
   const MIN_TICK_MS = 70;
 
+  // Food quality-of-life: if you don't reach food for a while, it respawns.
+  // This prevents rare cases where food becomes effectively unreachable.
+  const FOOD_TTL_MS = 9000; // 9 seconds
+
   const MODES = {
     classic: { id: "classic", name: "Classic", wrap: false },
     noWalls: { id: "noWalls", name: "No Walls", wrap: true },
@@ -78,6 +82,7 @@
   let queuedDir = null;
 
   let food = { x: 10, y: 10 };
+  let foodSpawnedAt = 0;
   let score = 0;
   let foodsEaten = 0;
 
@@ -214,16 +219,34 @@
   // -----------------------------
   function spawnFood() {
     const occupied = new Set(snake.map((s) => `${s.x},${s.y}`));
-    for (let attempts = 0; attempts < 999; attempts++) {
+
+    // Try a bunch of random spots first.
+    for (let attempts = 0; attempts < 2000; attempts++) {
       const x = Math.floor(Math.random() * GRID);
       const y = Math.floor(Math.random() * GRID);
       const key = `${x},${y}`;
       if (!occupied.has(key)) {
         food = { x, y };
+        foodSpawnedAt = performance.now();
         return;
       }
     }
-    food = { x: 0, y: 0 };
+
+    // Fallback: deterministic scan (guarantees a result if any empty cell exists)
+    for (let y = 0; y < GRID; y++) {
+      for (let x = 0; x < GRID; x++) {
+        const key = `${x},${y}`;
+        if (!occupied.has(key)) {
+          food = { x, y };
+          foodSpawnedAt = performance.now();
+          return;
+        }
+      }
+    }
+
+    // Board is full (you win!)
+    food = { x: -1, y: -1 };
+    foodSpawnedAt = performance.now();
   }
 
   function showOverlay(show, title, text) {
@@ -315,6 +338,14 @@
 
   function step() {
     if (!running || paused || gameOver) return;
+
+    // Safety: if food is missing/invalid or sitting on the snake, respawn it.
+    if (!food || !Number.isFinite(food.x) || !Number.isFinite(food.y)) {
+      spawnFood();
+    } else {
+      const onSnake = snake.some((s) => s.x === food.x && s.y === food.y);
+      if (onSnake) spawnFood();
+    }
 
     if (queuedDir) {
       dir = queuedDir;
@@ -425,11 +456,13 @@
     ctx.save();
     ctx.translate(ox, oy);
 
-    // Food
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = "#34d399";
-    roundRect(food.x * cell + 3, food.y * cell + 3, cell - 6, cell - 6, 6);
-    ctx.fill();
+    // Food (if board isn't full)
+    if (food.x >= 0 && food.y >= 0) {
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#34d399";
+      roundRect(food.x * cell + 3, food.y * cell + 3, cell - 6, cell - 6, 6);
+      ctx.fill();
+    }
 
     // Snake
     for (let i = snake.length - 1; i >= 0; i--) {
@@ -484,6 +517,13 @@
     draw();
 
     if (!running || paused || gameOver) return;
+
+    // If food has been on-screen too long, respawn it.
+    if (foodSpawnedAt && ts - foodSpawnedAt > FOOD_TTL_MS) {
+      spawnFood();
+      setStatus("Food respawned.");
+      beep(420, 0.03, "triangle", 0.015);
+    }
 
     if (!lastTick) lastTick = ts;
     const dt = ts - lastTick;
