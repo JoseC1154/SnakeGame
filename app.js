@@ -765,11 +765,6 @@
       elDpad.addEventListener("pointercancel", releaseStick, { passive: true });
       elDpad.addEventListener("lostpointercapture", releaseStick, { passive: true });
     }
-        if (d === "down") setDirection({ x: 0, y: 1 });
-        if (d === "left") setDirection({ x: -1, y: 0 });
-        if (d === "right") setDirection({ x: 1, y: 0 });
-      });
-    });
   }
 
   // -----------------------------
