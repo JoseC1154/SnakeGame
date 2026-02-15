@@ -1,5 +1,7 @@
 <!-- FILE: index.html -->
+
 <!doctype html>
+
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -13,12 +15,15 @@
     <meta name="apple-mobile-web-app-title" content="Snake+" />
     <meta name="description" content="Snake+ — classic Snake, modern PWA." />
 
-    <link rel="manifest" href="manifest.json" />
-    <link rel="icon" href="icons/icon-192.png" sizes="192x192" />
-    <link rel="apple-touch-icon" href="icons/icon-192.png" />
+```
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icons/icon-192.png" sizes="192x192" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
 
-    <link rel="stylesheet" href="styles.css" />
-    <title>Snake+</title>
+<link rel="stylesheet" href="styles.css" />
+<title>Snake+</title>
+```
+
   </head>
 
   <body>
@@ -32,153 +37,132 @@
           </div>
         </div>
 
-        <div class="hud">
-          <div class="hudItem">
-            <div class="hudLabel">Score</div>
-            <div class="hudValue" id="score">0</div>
-          </div>
-          <div class="hudItem">
-            <div class="hudLabel">Best</div>
-            <div class="hudValue" id="best">0</div>
-          </div>
-          <div class="hudItem">
-            <div class="hudLabel">Speed</div>
-            <div class="hudValue" id="speed">1x</div>
-          </div>
-        </div>
-
-        <div class="actions">
-          <button class="iconBtn" id="btnPause" type="button" aria-label="Pause">
-            ⏸
-          </button>
-          <button class="iconBtn" id="btnMenu" type="button" aria-label="Menu">
-            ☰
-          </button>
-        </div>
-      </header>
-
-      <main class="stage" role="main">
-        <div class="gameShell">
-          <canvas id="game" width="720" height="720" aria-label="Snake game canvas"></canvas>
-
-          <!-- Overlay: Start / Pause / Game Over -->
-          <section class="overlay" id="overlay" aria-live="polite">
-            <div class="overlayCard">
-              <h1 class="overlayTitle" id="overlayTitle">Snake+</h1>
-              <p class="overlayText" id="overlayText">
-                Swipe to move. Eat the dot. Don’t hit yourself.
-              </p>
-
-              <div class="overlayRow">
-                <button class="primaryBtn" id="btnStart" type="button">Start</button>
-                <button class="ghostBtn" id="btnRestart" type="button">Restart</button>
-              </div>
-
-              <div class="overlayHints">
-                <div class="hintPill">Swipe anywhere</div>
-                <div class="hintPill">Tap ⏸ to pause</div>
-                <div class="hintPill">Works offline</div>
-              </div>
-            </div>
-          </section>
-        </div>
-
-        <!-- Mobile controls (optional D-pad + toggles) -->
-        <section class="controls" aria-label="Controls">
-          <div class="controlRow">
-            <button class="pillBtn" id="btnMode" type="button" aria-label="Change mode">
-              Mode
-            </button>
-            <button class="pillBtn" id="btnSound" type="button" aria-label="Toggle sound">
-              Sound: On
-            </button>
-            <button class="pillBtn" id="btnVibrate" type="button" aria-label="Toggle vibration">
-              Haptics: On
-            </button>
-            <button class="pillBtn" id="btnDpad" type="button" aria-label="Toggle d-pad">
-              D-pad: Off
-            </button>
-          </div>
-
-          <div class="dpadWrap" id="dpadWrap" hidden>
-            <div class="dpad">
-              <button class="dpadBtn up" data-dir="up" aria-label="Up">▲</button>
-              <button class="dpadBtn left" data-dir="left" aria-label="Left">◀</button>
-              <button class="dpadBtn right" data-dir="right" aria-label="Right">▶</button>
-              <button class="dpadBtn down" data-dir="down" aria-label="Down">▼</button>
-              <div class="dpadCenter" aria-hidden="true"></div>
-            </div>
-          </div>
-
-          <p class="fineprint" id="status">Ready.</p>
-        </section>
-      </main>
-
-      <!-- Menu modal -->
-      <dialog class="modal" id="menu">
-        <div class="modalInner">
-          <div class="modalHeader">
-            <h2 class="modalTitle">Menu</h2>
-            <button class="iconBtn" id="btnCloseMenu" type="button" aria-label="Close menu">
-              ✕
-            </button>
-          </div>
-
-          <div class="modalBody">
-            <div class="section">
-              <h3>Modes</h3>
-              <div class="segRow" role="group" aria-label="Game modes">
-                <button class="segBtn" data-mode="classic" type="button">Classic</button>
-                <button class="segBtn" data-mode="noWalls" type="button">No Walls</button>
-              </div>
-              <p class="muted">
-                Classic: walls end the run. No Walls: wrap around edges.
-              </p>
-            </div>
-
-            <div class="section">
-              <h3>Options</h3>
-              <label class="row">
-                <span>Show D-pad</span>
-                <input id="toggleDpad" type="checkbox" />
-              </label>
-              <label class="row">
-                <span>Sound</span>
-                <input id="toggleSound" type="checkbox" checked />
-              </label>
-              <label class="row">
-                <span>Haptics</span>
-                <input id="toggleHaptics" type="checkbox" checked />
-              </label>
-              <label class="row">
-                <span>High contrast</span>
-                <input id="toggleContrast" type="checkbox" />
-              </label>
-            </div>
-
-            <div class="section">
-              <h3>About</h3>
-              <p class="muted">
-                Installable PWA • Offline-ready • Touch-first Snake with modern upgrades.
-              </p>
-            </div>
-          </div>
-
-          <div class="modalFooter">
-            <button class="ghostBtn" id="btnCloseMenu2" type="button">Close</button>
-          </div>
-        </div>
-      </dialog>
+```
+    <div class="hud">
+      <div class="hudItem">
+        <div class="hudLabel">Score</div>
+        <div class="hudValue" id="score">0</div>
+      </div>
+      <div class="hudItem">
+        <div class="hudLabel">Best</div>
+        <div class="hudValue" id="best">0</div>
+      </div>
+      <div class="hudItem">
+        <div class="hudLabel">Speed</div>
+        <div class="hudValue" id="speed">1x</div>
+      </div>
     </div>
 
-    <script src="app.js" defer></script>
-    <script>
-      // PWA: register service worker (safe if file not present yet)
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => {
-          navigator.serviceWorker.register("./service-worker.js").catch(() => {});
-        });
-      }
-    </script>
+    <div class="actions">
+      <button class="iconBtn" id="btnPause" type="button" aria-label="Pause">
+        ⏸
+      </button>
+      <button class="iconBtn" id="btnMenu" type="button" aria-label="Menu">
+        ☰
+      </button>
+    </div>
+  </header>
+
+  <main class="stage" role="main">
+    <div class="gameShell">
+      <canvas id="game" width="720" height="720" aria-label="Snake game canvas"></canvas>
+
+      <section class="overlay" id="overlay" aria-live="polite">
+        <div class="overlayCard">
+          <h1 class="overlayTitle" id="overlayTitle">Snake+</h1>
+          <p class="overlayText" id="overlayText">
+            Swipe to move. Eat the dot. Don’t hit yourself.
+          </p>
+
+          <div class="overlayRow">
+            <button class="primaryBtn" id="btnStart" type="button">Start</button>
+            <button class="ghostBtn" id="btnRestart" type="button">Restart</button>
+          </div>
+
+          <div class="overlayHints">
+            <div class="hintPill">Swipe anywhere</div>
+            <div class="hintPill">Tap ⏸ to pause</div>
+            <div class="hintPill">Works offline</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="controls" aria-label="Controls">
+      <div class="controlRow">
+        <button class="pillBtn" id="btnMode" type="button">Mode</button>
+        <button class="pillBtn" id="btnSound" type="button">Sound: On</button>
+        <button class="pillBtn" id="btnVibrate" type="button">Haptics: On</button>
+        <button class="pillBtn" id="btnDpad" type="button">D-pad: Off</button>
+      </div>
+
+      <div class="dpadWrap" id="dpadWrap" hidden>
+        <div class="dpad">
+          <button class="dpadBtn up" data-dir="up">▲</button>
+          <button class="dpadBtn left" data-dir="left">◀</button>
+          <button class="dpadBtn right" data-dir="right">▶</button>
+          <button class="dpadBtn down" data-dir="down">▼</button>
+          <div class="dpadCenter" aria-hidden="true"></div>
+        </div>
+      </div>
+
+      <p class="fineprint" id="status">Ready.</p>
+    </section>
+  </main>
+
+  <dialog class="modal" id="menu">
+    <div class="modalInner">
+      <div class="modalHeader">
+        <h2 class="modalTitle">Menu</h2>
+        <button class="iconBtn" id="btnCloseMenu" type="button">✕</button>
+      </div>
+
+      <div class="modalBody">
+        <div class="section">
+          <h3>Modes</h3>
+          <div class="segRow">
+            <button class="segBtn" data-mode="classic" type="button">Classic</button>
+            <button class="segBtn" data-mode="noWalls" type="button">No Walls</button>
+          </div>
+        </div>
+
+        <div class="section">
+          <h3>Options</h3>
+          <label class="row">
+            <span>Show D-pad</span>
+            <input id="toggleDpad" type="checkbox" />
+          </label>
+          <label class="row">
+            <span>Sound</span>
+            <input id="toggleSound" type="checkbox" checked />
+          </label>
+          <label class="row">
+            <span>Haptics</span>
+            <input id="toggleHaptics" type="checkbox" checked />
+          </label>
+          <label class="row">
+            <span>High contrast</span>
+            <input id="toggleContrast" type="checkbox" />
+          </label>
+        </div>
+      </div>
+
+      <div class="modalFooter">
+        <button class="ghostBtn" id="btnCloseMenu2" type="button">Close</button>
+      </div>
+    </div>
+  </dialog>
+</div>
+
+<script src="app.js" defer></script>
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+    });
+  }
+</script>
+```
+
   </body>
 </html>
