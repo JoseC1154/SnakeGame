@@ -198,14 +198,19 @@
   // Canvas sizing
   // -----------------------------
   function resizeCanvas() {
-    const rect = elCanvas.getBoundingClientRect();
+    // Use the *actual CSS box size* of the canvas.
+    // This avoids rectangular scaling issues on some mobile browsers.
+    const cw = Math.floor(elCanvas.clientWidth || elCanvas.getBoundingClientRect().width);
+    const ch = Math.floor(elCanvas.clientHeight || elCanvas.getBoundingClientRect().height);
+    const cssSize = Math.floor(Math.min(cw, ch));
+
     dpr = window.devicePixelRatio || 1;
 
-    const cssSize = Math.floor(Math.min(rect.width, rect.height));
-
+    // Backing buffer must match CSS size * DPR for crisp, square pixels
     elCanvas.width = Math.floor(cssSize * dpr);
     elCanvas.height = Math.floor(cssSize * dpr);
 
+    // Draw in CSS pixel coordinates
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     cell = Math.floor(cssSize / GRID);
