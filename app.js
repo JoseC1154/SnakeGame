@@ -38,6 +38,13 @@
   const toggleHaptics = document.getElementById("toggleHaptics");
   const toggleContrast = document.getElementById("toggleContrast");
 
+  // Layout helpers (fix "off-screen" controls on short viewports)
+  const elApp = document.querySelector(".app");
+  const elTopbar = document.querySelector(".topbar");
+  const elStage = document.querySelector(".stage");
+  const elGameShell = document.querySelector(".gameShell");
+  const elControls = document.querySelector(".controls");
+
   // -----------------------------
   // Storage keys
   // -----------------------------
@@ -203,6 +210,40 @@
 
     cell = Math.floor(cssSize / GRID);
     cell = clamp(cell, 10, 40);
+  }
+
+  // Keep the whole UI within the visible viewport on short screens.
+  function fitLayout() {
+    if (!elApp || !elTopbar || !elStage || !elGameShell || !elControls) return;
+
+    // Prefer VisualViewport height on mobile (handles address bar / keyboard better)
+    const vv = window.visualViewport;
+    const vh = Math.floor((vv && vv.height) ? vv.height : window.innerHeight);
+
+    // Lock the app container to the visible viewport height
+    elApp.style.height = `${vh}px`;
+    elApp.style.minHeight = "0";
+
+    // Compute how tall the gameShell can be so controls never get pushed off-screen
+    const topH = elTopbar.getBoundingClientRect().height;
+    const controlsH = elControls.getBoundingClientRect().height;
+
+    // app padding (top/bottom)
+    const cs = getComputedStyle(elApp);
+    const padT = parseFloat(cs.paddingTop) || 0;
+    const padB = parseFloat(cs.paddingBottom) || 0;
+
+    // Approximate gaps between sections (matches CSS gap: 10px)
+    const gaps = 20;
+
+    const availableForShell = Math.max(220, vh - padT - padB - topH - controlsH - gaps);
+
+    // Ensure stage doesn't overflow
+    elStage.style.minHeight = "0";
+    elStage.style.height = `${Math.max(260, vh - padT - padB - topH - 10)}px`;
+
+    // Pin the game board to the computed height
+    elGameShell.style.height = `${availableForShell}px`;
   }
 
   function boardOffset() {
@@ -723,8 +764,10 @@
     applyOptionsToUI();
     updateHud();
 
+    fitLayout();
     resizeCanvas();
     const ro = new ResizeObserver(() => {
+      fitLayout();
       resizeCanvas();
       draw();
     });
@@ -732,9 +775,25 @@
 
     window.addEventListener("orientationchange", () => {
       setTimeout(() => {
+        fitLayout();
         resizeCanvas();
         draw();
       }, 250);
+    });
+
+    // Mobile browser UI (address bar) changes can shrink the visible viewport
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", () => {
+        fitLayout();
+        resizeCanvas();
+        draw();
+      });
+    }
+
+    window.addEventListener("resize", () => {
+      fitLayout();
+      resizeCanvas();
+      draw();
     });
 
     setupInput();
