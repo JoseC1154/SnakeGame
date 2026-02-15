@@ -96,7 +96,6 @@
   // Resize
   let dpr = 1;
   let cell = 20; // pixels per cell (computed)
-  let boardPx = 480;
 
   // -----------------------------
   // Helpers
@@ -143,16 +142,15 @@
     localStorage.setItem(key, String(v));
   }
 
+  function speedMultiplier() {
+    return BASE_TICK_MS / tickMs;
+  }
+
   function updateHud() {
     elScore.textContent = String(score);
     elBest.textContent = String(getBest());
     elSpeed.textContent = `${speedMultiplier().toFixed(1)}x`;
     elModeLabel.textContent = mode.name;
-  }
-
-  function speedMultiplier() {
-    // BASE_TICK_MS / tickMs (bigger = faster)
-    return BASE_TICK_MS / tickMs;
   }
 
   function vibrate(ms = 20) {
@@ -171,8 +169,6 @@
     if (!optSound) return;
     const ac = ensureAudio();
     if (!ac) return;
-
-    // iOS: resume on gesture
     if (ac.state === "suspended") ac.resume().catch(() => {});
 
     const o = ac.createOscillator();
@@ -194,9 +190,7 @@
     dpr = window.devicePixelRatio || 1;
 
     const cssSize = Math.floor(Math.min(rect.width, rect.height));
-    boardPx = cssSize;
 
-    // Backing buffer
     elCanvas.width = Math.floor(cssSize * dpr);
     elCanvas.height = Math.floor(cssSize * dpr);
 
@@ -204,9 +198,6 @@
 
     cell = Math.floor(cssSize / GRID);
     cell = clamp(cell, 10, 40);
-
-    // Align board within canvas (centered) if any remainder
-    // We'll just draw with offsets
   }
 
   function boardOffset() {
@@ -221,37 +212,7 @@
   // -----------------------------
   // Game setup
   // -----------------------------
-  function resetGame() {
-    running = false;
-    paused = false;
-    gameOver = false;
-
-    score = 0;
-    foodsEaten = 0;
-    tickMs = BASE_TICK_MS;
-    lastTick = 0;
-
-    dir = { x: 1, y: 0 };
-    queuedDir = null;
-
-    // snake starts centered, moving right
-    const startX = Math.floor(GRID / 2);
-    const startY = Math.floor(GRID / 2);
-    snake = [];
-    for (let i = 0; i < START_LEN; i++) {
-      snake.push({ x: startX - i, y: startY });
-    }
-
-    spawnFood();
-
-    updateHud();
-    showOverlay(true, "Snake+", "Swipe to move. Eat the dot. Don’t hit yourself.");
-    setStatus("Ready.");
-    draw(); // initial frame
-  }
-
   function spawnFood() {
-    // Find empty cell
     const occupied = new Set(snake.map((s) => `${s.x},${s.y}`));
     for (let attempts = 0; attempts < 999; attempts++) {
       const x = Math.floor(Math.random() * GRID);
@@ -262,7 +223,6 @@
         return;
       }
     }
-    // If somehow full, end
     food = { x: 0, y: 0 };
   }
 
@@ -277,13 +237,39 @@
     }
   }
 
+  function resetGame() {
+    running = false;
+    paused = false;
+    gameOver = false;
+
+    score = 0;
+    foodsEaten = 0;
+    tickMs = BASE_TICK_MS;
+    lastTick = 0;
+
+    dir = { x: 1, y: 0 };
+    queuedDir = null;
+
+    const startX = Math.floor(GRID / 2);
+    const startY = Math.floor(GRID / 2);
+    snake = [];
+    for (let i = 0; i < START_LEN; i++) {
+      snake.push({ x: startX - i, y: startY });
+    }
+
+    spawnFood();
+    updateHud();
+    showOverlay(true, "Snake+", "Swipe to move. Eat the dot. Don’t hit yourself.");
+    setStatus("Ready.");
+    draw();
+  }
+
   function start() {
     if (gameOver) resetGame();
     running = true;
     paused = false;
     showOverlay(false);
     setStatus("Running.");
-    // ensure audio/haptics allowed
     ensureAudio();
   }
 
@@ -292,12 +278,10 @@
     paused = false;
     gameOver = true;
 
-    // best
     const best = getBest();
     if (score > best) setBest(score);
 
     updateHud();
-
     showOverlay(true, "Game Over", reasonText || "Tap Restart to try again.");
     setStatus("Game over.");
     beep(160, 0.08, "sawtooth", 0.025);
@@ -324,11 +308,8 @@
   // Movement + rules
   // -----------------------------
   function setDirection(next) {
-    // prevent reversing into itself (classic snake rule)
     if (!next) return;
     if (next.x === -dir.x && next.y === -dir.y) return;
-
-    // If already queued this tick, keep last meaningful input
     queuedDir = next;
   }
 
@@ -348,7 +329,6 @@
       nx = (nx + GRID) % GRID;
       ny = (ny + GRID) % GRID;
     } else {
-      // classic walls
       if (nx < 0 || nx >= GRID || ny < 0 || ny >= GRID) {
         endRun("You hit the wall.");
         return;
@@ -357,10 +337,9 @@
 
     const newHead = { x: nx, y: ny };
 
-    // collision with self (allow moving into last tail cell only if tail will move away)
-    const tail = snake[snake.length - 1];
+    // collision with body (ignore tail)
     const hitsBody = snake.some((seg, i) => {
-      if (i === snake.length - 1) return false; // ignore tail for now
+      if (i === snake.length - 1) return false;
       return seg.x === newHead.x && seg.y === newHead.y;
     });
 
@@ -371,12 +350,10 @@
 
     snake.unshift(newHead);
 
-    // Eat?
     if (sameCell(newHead, food)) {
       score += 10;
       foodsEaten += 1;
 
-      // speed up
       if (foodsEaten % SPEEDUP_EVERY === 0) {
         tickMs = Math.max(MIN_TICK_MS, tickMs - 10);
       }
@@ -386,23 +363,11 @@
 
       spawnFood();
     } else {
-      // move forward (remove tail)
       snake.pop();
     }
 
-    // tail collision case: if we moved into tail while not eating, it's okay because tail moved away
-    // but if we ate, tail didn't move. In that case, check if head equals old tail.
-    if (sameCell(newHead, tail) && sameCell(newHead, food)) {
-      endRun("You ran into yourself.");
-      return;
-    }
-
-    // update best in-run display
-    const best = getBest();
-    if (score > best) {
-      // don't write every frame; write on eat only is enough
-      setBest(score);
-    }
+    // Update best
+    if (score > getBest()) setBest(score);
 
     updateHud();
   }
@@ -410,15 +375,24 @@
   // -----------------------------
   // Drawing
   // -----------------------------
+  function roundRect(x, y, w, h, r) {
+    const rr = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.arcTo(x + w, y, x + w, y + h, rr);
+    ctx.arcTo(x + w, y + h, x, y + h, rr);
+    ctx.arcTo(x, y + h, x, y, rr);
+    ctx.arcTo(x, y, x + w, y, rr);
+    ctx.closePath();
+  }
+
   function drawGrid(ox, oy) {
     ctx.save();
     ctx.translate(ox, oy);
 
-    // background board
     ctx.fillStyle = "#0a0d10";
     ctx.fillRect(0, 0, cell * GRID, cell * GRID);
 
-    // subtle grid
     ctx.globalAlpha = 0.16;
     ctx.strokeStyle = "#ffffff";
     ctx.lineWidth = 1;
@@ -439,17 +413,6 @@
     ctx.restore();
   }
 
-  function roundRect(x, y, w, h, r) {
-    const rr = Math.min(r, w / 2, h / 2);
-    ctx.beginPath();
-    ctx.moveTo(x + rr, y);
-    ctx.arcTo(x + w, y, x + w, y + h, rr);
-    ctx.arcTo(x + w, y + h, x, y + h, rr);
-    ctx.arcTo(x, y + h, x, y, rr);
-    ctx.arcTo(x, y, x + w, y, rr);
-    ctx.closePath();
-  }
-
   function draw() {
     const rect = elCanvas.getBoundingClientRect();
     const size = Math.floor(Math.min(rect.width, rect.height));
@@ -457,18 +420,15 @@
 
     const { ox, oy } = boardOffset();
 
-    // board + grid
     drawGrid(ox, oy);
 
     ctx.save();
     ctx.translate(ox, oy);
 
     // Food
-    const fx = food.x * cell;
-    const fy = food.y * cell;
     ctx.globalAlpha = 1;
     ctx.fillStyle = "#34d399";
-    roundRect(fx + 3, fy + 3, cell - 6, cell - 6, 6);
+    roundRect(food.x * cell + 3, food.y * cell + 3, cell - 6, cell - 6, 6);
     ctx.fill();
 
     // Snake
@@ -476,12 +436,9 @@
       const s = snake[i];
       const x = s.x * cell;
       const y = s.y * cell;
-
-      // head brighter
       const isHead = i === 0;
-      ctx.fillStyle = isHead ? "#eafff6" : "#a7f3d0";
 
-      // slight gradient by body position
+      ctx.fillStyle = isHead ? "#eafff6" : "#a7f3d0";
       if (!isHead) {
         const t = i / Math.max(1, snake.length - 1);
         ctx.globalAlpha = 0.75 + 0.25 * (1 - t);
@@ -492,7 +449,6 @@
       roundRect(x + 2, y + 2, cell - 4, cell - 4, 7);
       ctx.fill();
 
-      // eye dots on head
       if (isHead) {
         ctx.globalAlpha = 0.85;
         ctx.fillStyle = "#0c0f12";
@@ -510,7 +466,7 @@
 
     ctx.restore();
 
-    // border frame
+    // Frame
     ctx.save();
     ctx.globalAlpha = 0.18;
     ctx.strokeStyle = "#ffffff";
@@ -520,28 +476,25 @@
   }
 
   // -----------------------------
-  // Main loop
+  // Loop
   // -----------------------------
   function loop(ts) {
     requestAnimationFrame(loop);
 
-    // draw always (for crispness on resize)
     draw();
 
     if (!running || paused || gameOver) return;
 
     if (!lastTick) lastTick = ts;
     const dt = ts - lastTick;
-
     if (dt >= tickMs) {
-      // in case of big lag, don't step too many times
       lastTick = ts;
       step();
     }
   }
 
   // -----------------------------
-  // Input: swipe + keyboard + dpad
+  // Input
   // -----------------------------
   function setupInput() {
     // Keyboard
@@ -568,32 +521,23 @@
     let touchStart = null;
 
     const onPointerDown = (e) => {
-      // iOS: allow audio on first gesture
       ensureAudio();
-      if (paused && running) {
-        // allow swipe to also resume? no—keep ⏸ for that
-      }
-      touchStart = { x: e.clientX, y: e.clientY, t: performance.now() };
+      touchStart = { x: e.clientX, y: e.clientY };
     };
 
     const onPointerMove = (e) => {
       if (!touchStart) return;
-
       const dx = e.clientX - touchStart.x;
       const dy = e.clientY - touchStart.y;
-
-      // threshold
       const dist = Math.hypot(dx, dy);
       if (dist < 18) return;
 
-      // lock direction based on biggest axis
       if (Math.abs(dx) > Math.abs(dy)) {
         setDirection({ x: dx > 0 ? 1 : -1, y: 0 });
       } else {
         setDirection({ x: 0, y: dy > 0 ? 1 : -1 });
       }
 
-      // consume the swipe (prevents repeated triggers)
       touchStart = null;
     };
 
@@ -619,7 +563,7 @@
   }
 
   // -----------------------------
-  // UI wiring
+  // UI
   // -----------------------------
   function applyOptionsToUI() {
     btnSound.textContent = `Sound: ${optSound ? "On" : "Off"}`;
@@ -643,12 +587,10 @@
   }
 
   function openMenu() {
-    if (!dlgMenu) return;
     dlgMenu.showModal();
   }
 
   function closeMenu() {
-    if (!dlgMenu) return;
     dlgMenu.close();
   }
 
@@ -656,8 +598,8 @@
     btnStart.addEventListener("click", () => start());
     btnRestart.addEventListener("click", () => resetGame());
     btnPause.addEventListener("click", () => togglePause());
-    btnMenu.addEventListener("click", () => openMenu());
 
+    btnMenu.addEventListener("click", () => openMenu());
     btnCloseMenu.addEventListener("click", () => closeMenu());
     btnCloseMenu2.addEventListener("click", () => closeMenu());
 
@@ -688,7 +630,6 @@
       vibrate(10);
     });
 
-    // Modal segmented mode buttons
     dlgMenu.querySelectorAll(".segBtn").forEach((b) => {
       b.addEventListener("click", () => {
         const m = b.getAttribute("data-mode");
@@ -699,7 +640,6 @@
       });
     });
 
-    // Modal toggles
     toggleDpad.addEventListener("change", () => {
       optDpad = toggleDpad.checked;
       writeBool(LS.dpad, optDpad);
@@ -727,25 +667,12 @@
       applyOptionsToUI();
       vibrate(10);
     });
-
-    // Close menu with ESC
-    dlgMenu.addEventListener("cancel", () => {
-      // keep default close behavior
-    });
-
-    // Tap overlay Start = Start
-    elOverlay.addEventListener("click", (e) => {
-      const target = e.target;
-      // if you tapped the backdrop area, do nothing
-      if (target === elOverlay) return;
-    });
   }
 
   // -----------------------------
   // Init
   // -----------------------------
   function init() {
-    // Load options
     optSound = readBool(LS.sound, true);
     optHaptics = readBool(LS.haptics, true);
     optDpad = readBool(LS.dpad, false);
@@ -756,7 +683,6 @@
     applyOptionsToUI();
     updateHud();
 
-    // Resize
     resizeCanvas();
     const ro = new ResizeObserver(() => {
       resizeCanvas();
