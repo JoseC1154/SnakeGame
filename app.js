@@ -38,6 +38,11 @@
   const toggleHaptics = document.getElementById("toggleHaptics");
   const toggleContrast = document.getElementById("toggleContrast");
 
+  // D-pad elements (for animated / draggable feedback)
+  const elDpad = document.querySelector(".dpad");
+  const elDpadCenter = document.querySelector(".dpadCenter");
+  let dpadPtrId = null;
+
   // Layout helpers (fix "off-screen" controls on short viewports)
   const elApp = document.querySelector(".app");
   const elTopbar = document.querySelector(".topbar");
@@ -192,6 +197,38 @@
     g.connect(ac.destination);
     o.start();
     o.stop(ac.currentTime + dur);
+  }
+
+  function dpadFeedback(nextDir) {
+    // Animate only if the d-pad exists + is visible (user enabled it)
+    if (!optDpad || !elDpad || !elDpadCenter) return;
+
+    // Quick press pulse on the pad
+    try {
+      elDpad.animate(
+        [
+          { transform: "scale(1)", opacity: 1 },
+          { transform: "scale(0.985)", opacity: 0.98 },
+          { transform: "scale(1)", opacity: 1 },
+        ],
+        { duration: 110, easing: "ease-out" }
+      );
+    } catch {
+      // ignore
+    }
+
+    // Nudge the center nub in the direction of travel
+    const nudge = Math.max(8, Math.min(18, (elDpad.clientWidth || 200) * 0.08));
+    const tx = nextDir.x * nudge;
+    const ty = nextDir.y * nudge;
+
+    elDpadCenter.style.transform = `translate(${tx}px, ${ty}px)`;
+
+    // Snap back shortly after
+    window.clearTimeout(dpadFeedback._t);
+    dpadFeedback._t = window.setTimeout(() => {
+      if (elDpadCenter) elDpadCenter.style.transform = "translate(0px, 0px)";
+    }, 85);
   }
 
   // -----------------------------
@@ -393,6 +430,7 @@
     if (!next) return;
     if (next.x === -dir.x && next.y === -dir.y) return;
     queuedDir = next;
+    dpadFeedback(next);
   }
 
   function step() {
@@ -654,6 +692,79 @@
       b.addEventListener("click", () => {
         const d = b.getAttribute("data-dir");
         if (d === "up") setDirection({ x: 0, y: -1 });
+        if (d === "down") setDirection({ x: 0, y: 1 });
+        if (d === "left") setDirection({ x: -1, y: 0 });
+        if (d === "right") setDirection({ x: 1, y: 0 });
+      });
+    });
+
+    // Optional: draggable / "thumbstick" feel inside the d-pad area
+    if (elDpad && elDpadCenter) {
+      const getLocal = (e) => {
+        const r = elDpad.getBoundingClientRect();
+        const x = e.clientX - r.left;
+        const y = e.clientY - r.top;
+        return { x, y, r };
+      };
+
+      const applyStick = (x, y, r) => {
+        const cx = r.width / 2;
+        const cy = r.height / 2;
+        const dx = x - cx;
+        const dy = y - cy;
+
+        // Clamp the nub movement radius
+        const maxR = Math.min(r.width, r.height) * 0.22;
+        const dist = Math.hypot(dx, dy) || 1;
+        const k = Math.min(1, maxR / dist);
+        const tx = dx * k;
+        const ty = dy * k;
+
+        elDpadCenter.style.transform = `translate(${tx}px, ${ty}px)`;
+
+        // Direction threshold (prevents jitter near center)
+        const dead = Math.min(r.width, r.height) * 0.10;
+        if (Math.abs(dx) < dead && Math.abs(dy) < dead) return;
+
+        if (Math.abs(dx) > Math.abs(dy)) {
+          setDirection({ x: dx > 0 ? 1 : -1, y: 0 });
+        } else {
+          setDirection({ x: 0, y: dy > 0 ? 1 : -1 });
+        }
+      };
+
+      elDpad.addEventListener(
+        "pointerdown",
+        (e) => {
+          if (!optDpad) return;
+          dpadPtrId = e.pointerId;
+          elDpad.setPointerCapture(dpadPtrId);
+          const { x, y, r } = getLocal(e);
+          applyStick(x, y, r);
+        },
+        { passive: true }
+      );
+
+      elDpad.addEventListener(
+        "pointermove",
+        (e) => {
+          if (!optDpad) return;
+          if (dpadPtrId === null || e.pointerId !== dpadPtrId) return;
+          const { x, y, r } = getLocal(e);
+          applyStick(x, y, r);
+        },
+        { passive: true }
+      );
+
+      const releaseStick = () => {
+        dpadPtrId = null;
+        elDpadCenter.style.transform = "translate(0px, 0px)";
+      };
+
+      elDpad.addEventListener("pointerup", releaseStick, { passive: true });
+      elDpad.addEventListener("pointercancel", releaseStick, { passive: true });
+      elDpad.addEventListener("lostpointercapture", releaseStick, { passive: true });
+    }
         if (d === "down") setDirection({ x: 0, y: 1 });
         if (d === "left") setDirection({ x: -1, y: 0 });
         if (d === "right") setDirection({ x: 1, y: 0 });
