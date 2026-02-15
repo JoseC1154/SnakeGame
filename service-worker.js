@@ -1,7 +1,7 @@
 // FILE: service-worker.js
 /* Snake+ Service Worker (offline-first app shell) */
 
-const VERSION = "v1.0.4";
+const VERSION = "v1.0.5";
 const CACHE_NAME = `snakeplus-${VERSION}`;
 
 const APP_SHELL = [
