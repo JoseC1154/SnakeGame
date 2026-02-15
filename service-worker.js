@@ -1,7 +1,7 @@
 // FILE: service-worker.js
 /* Snake+ Service Worker (offline-first app shell) */
 
-const VERSION = "v1.0.2";
+const VERSION = "v1.0.3";
 const CACHE_NAME = `snakeplus-${VERSION}`;
 
 const APP_SHELL = [
@@ -21,7 +21,16 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     (async () => {
       const cache = await caches.open(CACHE_NAME);
-      await cache.addAll(APP_SHELL);
+      // Cache what we can. If one request fails (common when icon files aren't uploaded yet),
+      // we still want the service worker to install.
+      const results = await Promise.allSettled(APP_SHELL.map((p) => cache.add(p)));
+      // Optional: remove any rejected entries from console noise
+      results.forEach((r, i) => {
+        if (r.status === "rejected") {
+          // eslint-disable-next-line no-console
+          console.warn("SW cache skip:", APP_SHELL[i], r.reason);
+        }
+      });
       await self.skipWaiting();
     })()
   );
