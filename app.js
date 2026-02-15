@@ -244,6 +244,19 @@
 
     // Pin the game board to the computed height
     elGameShell.style.height = `${availableForShell}px`;
+
+    // IMPORTANT: Keep the *canvas element* perfectly square.
+    // If the canvas is stretched by CSS into a rectangle, grid squares look skewed.
+    // We size the canvas box to a square that fits within the shell.
+    const shellRect = elGameShell.getBoundingClientRect();
+    const boardSize = Math.floor(Math.min(shellRect.width, availableForShell));
+
+    // Center the canvas within the shell
+    elGameShell.style.display = "grid";
+    elGameShell.style.placeItems = "center";
+
+    elCanvas.style.width = `${boardSize}px`;
+    elCanvas.style.height = `${boardSize}px`;
   }
 
   function boardOffset() {
